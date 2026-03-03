@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CAD Custom Jewelry — Casting Price Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #0a0a0a;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(212,175,55,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(100,100,180,0.04) 0%, transparent 60%);
+      font-family: 'Courier Prime', monospace;
+      color: #fff;
+      padding: 32px 24px;
+    }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header-eyebrow { font-size: 10px; letter-spacing: 6px; color: #D4AF37; text-transform: uppercase; margin-bottom: 8px; }
+    .header-title { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; }
+    .header-sub { font-size: 11px; color: #555; letter-spacing: 1px; }
+    .market-panel { background: rgba(0,0,0,0.45); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 18px 22px; margin-bottom: 24px; }
+    .market-panel-title { font-size: 9px; letter-spacing: 3px; color: #D4AF37; text-transform: uppercase; margin-bottom: 14px; }
+    .market-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .market-card { flex: 1; min-width: 130px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 14px; }
+    .market-card-label { font-size: 9px; letter-spacing: 2px; color: #666; text-transform: uppercase; margin-bottom: 6px; }
+    .market-card-value { font-size: 20px; font-weight: 700; color: #D4AF37; }
+    .market-card-value.loading { color: #333; }
+    .market-card-sub { font-size: 9px; color: #444; margin-top: 2px; }
+    .override-row { display: flex; gap: 10px; flex-wrap: wrap; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px 16px; align-items: flex-end; }
+    .override-label { font-size: 9px; color: #555; letter-spacing: 2px; text-transform: uppercase; min-width: 100%; margin-bottom: 6px; }
+    .override-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 110px; }
+    .override-field-label { font-size: 8px; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+    .override-input { background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.25); border-radius: 5px; color: #D4AF37; padding: 6px 8px; font-size: 13px; font-family: 'Courier Prime', monospace; outline: none; width: 100%; }
+    .override-input:focus { border-color: rgba(212,175,55,0.6); }
+    .override-note { font-size: 8px; color: #444; margin-top: 6px; min-width: 100%; font-style: italic; }
+    .status-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .status-badge { font-size: 9px; letter-spacing: 1px; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; }
+    .status-badge.live    { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid rgba(0,200,100,0.3); }
+    .status-badge.manual  { background: rgba(212,175,55,0.15); color: #D4AF37; border: 1px solid rgba(212,175,55,0.3); }
+    .status-badge.error   { background: rgba(230,80,80,0.15);  color: #e65050; border: 1px solid rgba(230,80,80,0.3); }
+    .status-badge.loading { background: rgba(255,255,255,0.05); color: #555;    border: 1px solid rgba(255,255,255,0.1); }
+    .refresh-btn { margin-left: auto; background: transparent; border: 1px solid rgba(212,175,55,0.3); border-radius: 6px; color: #D4AF37; padding: 4px 12px; font-size: 9px; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; font-family: 'Courier Prime', monospace; transition: background 0.2s; }
+    .refresh-btn:hover { background: rgba(212,175,55,0.1); }
+    .instruction { font-size: 10px; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
+    .slots-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .slot { background: rgba(255,255,255,0.04); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 20px 22px; flex: 1; min-width: 200px; }
+    .slot-label { font-size: 10px; letter-spacing: 3px; color: #D4AF37; text-transform: uppercase; margin-bottom: 16px; }
+    .field { margin-bottom: 12px; }
+    .field-label { font-size: 9px; letter-spacing: 2px; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+    select, input[type=number] { width: 100%; border-radius: 6px; outline: none; font-family: 'Courier Prime', monospace; font-size: 13px; padding: 8px 10px; }
+    select { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; }
+    select option { background: #1a1a1a; color: #fff; }
+    input[type=number] { background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.35); color: #D4AF37; font-size: 14px; }
+    input[type=number]::placeholder { color: #555; }
+    input[type=number]::-webkit-inner-spin-button { opacity: 0.4; }
+    .karat-row { display: none; }
+    .karat-row.visible { display: block; }
+    .slot-result { background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 10px 14px; text-align: center; margin-top: 4px; }
+    .slot-result-label { font-size: 9px; letter-spacing: 2px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+    .slot-result-value { font-size: 22px; font-weight: 700; color: #444; transition: color 0.3s; }
+    .slot-result-value.active { color: #D4AF37; }
+    .totals-box { background: rgba(0,0,0,0.5); border: 1px solid rgba(212,175,55,0.25); border-radius: 12px; padding: 20px 24px; }
+    .totals-heading { font-size: 10px; letter-spacing: 3px; color: #D4AF37; text-transform: uppercase; margin-bottom: 16px; }
+    .totals-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .total-card { flex: 1; min-width: 140px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px 18px; text-align: center; transition: all 0.3s; }
+    .total-card.active { background: rgba(212,175,55,0.1); border-color: rgba(212,175,55,0.4); }
+    .total-card-label { font-size: 9px; letter-spacing: 2px; color: #444; text-transform: uppercase; margin-bottom: 8px; transition: color 0.3s; }
+    .total-card.active .total-card-label { color: #D4AF37; }
+    .total-card-value { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 700; color: #333; transition: color 0.3s; }
+    .total-card.active .total-card-value { color: #fff; }
+    .footer { margin-top: 20px; font-size: 9px; color: #333; letter-spacing: 1px; text-align: center; line-height: 1.9; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-eyebrow">CAD Custom Jewelry</div>
+    <div class="header-title">Casting Price Calculator</div>
+    <div class="header-sub">Spot Price Feed &nbsp;•&nbsp; Manual London PM Fix Override Available</div>
+  </div>
+
+  <div class="market-panel">
+    <div class="market-panel-title">Current Metal Prices ($/troy oz)</div>
+    <div class="market-grid">
+      <div class="market-card"><div class="market-card-label">Gold</div><div class="market-card-value loading" id="disp-gold">···</div><div class="market-card-sub">XAU / USD</div></div>
+      <div class="market-card"><div class="market-card-label">Silver</div><div class="market-card-value loading" id="disp-silver">···</div><div class="market-card-sub">XAG / USD</div></div>
+      <div class="market-card"><div class="market-card-label">Platinum</div><div class="market-card-value loading" id="disp-platinum">···</div><div class="market-card-sub">XPT / USD</div></div>
+      <div class="market-card"><div class="market-card-label">Palladium</div><div class="market-card-value loading" id="disp-palladium">···</div><div class="market-card-sub">XPD / USD</div></div>
+    </div>
+    <div class="override-row">
+      <div class="override-label">⚙ London PM Fix Override — enter yesterday's fix price to use instead of live feed</div>
+      <div class="override-field"><div class="override-field-label">Gold ($/oz)</div><input class="override-input" type="number" id="ov-gold" placeholder="Auto" step="0.01" oninput="applyOverrides()"/></div>
+      <div class="override-field"><div class="override-field-label">Silver ($/oz)</div><input class="override-input" type="number" id="ov-silver" placeholder="Auto" step="0.01" oninput="applyOverrides()"/></div>
+      <div class="override-field"><div class="override-field-label">Platinum ($/oz)</div><input class="override-input" type="number" id="ov-platinum" placeholder="Auto" step="0.01" oninput="applyOverrides()"/></div>
+      <div class="override-field"><div class="override-field-label">Palladium ($/oz)</div><input class="override-input" type="number" id="ov-palladium" placeholder="Auto" step="0.01" oninput="applyOverrides()"/></div>
+      <div class="override-note">Leave blank to use live spot prices. Type in the London PM Fix to lock pricing to yesterday's official close.</div>
+    </div>
+    <div class="status-row">
+      <span class="status-badge loading" id="status-badge">Loading…</span>
+      <button class="refresh-btn" onclick="fetchPrices()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="instruction">▸ Select metal type, karat (if gold), and enter DWT to calculate casting estimate</div>
+
+  <div class="slots-row">
+    <div class="slot">
+      <div class="slot-label">Metal 1</div>
+      <div class="field"><div class="field-label">Metal Type</div><select id="type-1" onchange="onMetalChange(1)"><option value="">— Select —</option><option value="Gold">Gold</option><option value="Silver">Silver</option><option value="Platinum">Platinum</option></select></div>
+      <div class="field karat-row" id="karat-row-1"><div class="field-label">Karat</div><select id="karat-1" onchange="recalc()"><option value="10">10K</option><option value="14" selected>14K</option><option value="18">18K</option><option value="22">22K</option><option value="24">24K</option></select></div>
+      <div class="field"><div class="field-label">Estimated DWT</div><input type="number" id="dwt-1" min="0" step="0.1" placeholder="0.0" oninput="recalc()"/></div>
+      <div class="slot-result"><div class="slot-result-label">Casting Estimate</div><div class="slot-result-value" id="result-1">—</div></div>
+    </div>
+    <div class="slot">
+      <div class="slot-label">Metal 2</div>
+      <div class="field"><div class="field-label">Metal Type</div><select id="type-2" onchange="onMetalChange(2)"><option value="">— Select —</option><option value="Gold">Gold</option><option value="Silver">Silver</option><option value="Platinum">Platinum</option></select></div>
+      <div class="field karat-row" id="karat-row-2"><div class="field-label">Karat</div><select id="karat-2" onchange="recalc()"><option value="10">10K</option><option value="14" selected>14K</option><option value="18">18K</option><option value="22">22K</option><option value="24">24K</option></select></div>
+      <div class="field"><div class="field-label">Estimated DWT</div><input type="number" id="dwt-2" min="0" step="0.1" placeholder="0.0" oninput="recalc()"/></div>
+      <div class="slot-result"><div class="slot-result-label">Casting Estimate</div><div class="slot-result-value" id="result-2">—</div></div>
+    </div>
+    <div class="slot">
+      <div class="slot-label">Metal 3</div>
+      <div class="field"><div class="field-label">Metal Type</div><select id="type-3" onchange="onMetalChange(3)"><option value="">— Select —</option><option value="Gold">Gold</option><option value="Silver">Silver</option><option value="Platinum">Platinum</option></select></div>
+      <div class="field karat-row" id="karat-row-3"><div class="field-label">Karat</div><select id="karat-3" onchange="recalc()"><option value="10">10K</option><option value="14" selected>14K</option><option value="18">18K</option><option value="22">22K</option><option value="24">24K</option></select></div>
+      <div class="field"><div class="field-label">Estimated DWT</div><input type="number" id="dwt-3" min="0" step="0.1" placeholder="0.0" oninput="recalc()"/></div>
+      <div class="slot-result"><div class="slot-result-label">Casting Estimate</div><div class="slot-result-value" id="result-3">—</div></div>
+    </div>
+  </div>
+
+  <div class="totals-box">
+    <div class="totals-heading">Casting Totals</div>
+    <div class="totals-row">
+      <div class="total-card" id="card-single"><div class="total-card-label">Single-Tone</div><div class="total-card-value" id="total-single">—</div></div>
+      <div class="total-card" id="card-two"><div class="total-card-label">Two-Tone</div><div class="total-card-value" id="total-two">—</div></div>
+      <div class="total-card" id="card-tri"><div class="total-card-label">Tri-Tone</div><div class="total-card-value" id="total-tri">—</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Casting estimates based on spot price feed or manual London PM Fix entry.<br/>
+    Metal weights are approximate until CAD model is complete. Formula includes alloy, casting overhead, and markup per your rate structure.
+  </div>
+
+<script>
+  const live   = { gold: null, silver: null, platinum: null, palladium: null };
+  const active = { gold: null, silver: null, platinum: null, palladium: null };
+
+  async function fetchOne(symbol) {
+    const res = await fetch(`https://api.gold-api.com/price/${symbol}`);
+    if (!res.ok) throw new Error(symbol + ' failed');
+    const d = await res.json();
+    return d.price;
+  }
+
+  async function fetchPrices() {
+    setStatus('loading', 'Fetching live prices…');
+    try {
+      const [gold, silver, platinum, palladium] = await Promise.all([
+        fetchOne('XAU'), fetchOne('XAG'), fetchOne('XPT'), fetchOne('XPD')
+      ]);
+      live.gold = gold; live.silver = silver;
+      live.platinum = platinum; live.palladium = palladium;
+      const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setStatus('live', 'Live spot · updated ' + t);
+    } catch(e) {
+      if (!live.gold) {
+        live.gold = 3336; live.silver = 36.17;
+        live.platinum = 1266; live.palladium = 1075;
+      }
+      setStatus('error', 'Live feed unavailable — enter London PM Fix manually above');
+    }
+    applyOverrides();
+  }
+
+  function applyOverrides() {
+    let anyOverride = false;
+    ['gold','silver','platinum','palladium'].forEach(m => {
+      const ov = parseFloat(document.getElementById('ov-' + m).value);
+      const useOverride = !isNaN(ov) && ov > 0;
+      if (useOverride) anyOverride = true;
+      active[m] = useOverride ? ov : live[m];
+      const el = document.getElementById('disp-' + m);
+      el.classList.remove('loading');
+      el.textContent = active[m]
+        ? '$' + active[m].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : 'N/A';
+    });
+    if (anyOverride) setStatus('manual', 'Using London PM Fix override');
+    recalc();
+  }
+
+  function setStatus(type, msg) {
+    const b = document.getElementById('status-badge');
+    b.className = 'status-badge ' + type;
+    b.textContent = msg;
+  }
+
+  function calcCasting(metalType, karat, dwt) {
+    const gold = active.gold || 0;
+    const silver = active.silver || 0;
+    const platinum = active.platinum || 0;
+    if (!dwt || dwt <= 0 || !metalType) return 0;
+    if (metalType === 'Silver')   return ((silver * 1.07 + 1.25) / 20 * dwt) * 1.55;
+    if (metalType === 'Platinum') return (platinum * 0.952 * 1.1 / 20 * dwt) * 1.5;
+    if (metalType === 'Gold') {
+      const k = Number(karat);
+      const purities = { 10: 0.417, 14: 0.583, 18: 0.75, 22: 0.9167, 24: 1.0 };
+      const purity = purities[k];
+      if (!purity) return 0;
+      if (k === 24) return gold * 1.02 / 20 * dwt * 1.37;
+      const silverAlloy = k >= 22 ? 0.0833 : 0.25;
+      return ((gold * 1.04 * purity) / 20 + (silver * silverAlloy / 20 + 0.25)) * dwt * 1.37;
+    }
+    return 0;
+  }
+
+  function onMetalChange(slot) {
+    const type = document.getElementById('type-' + slot).value;
+    const kr = document.getElementById('karat-row-' + slot);
+    type === 'Gold' ? kr.classList.add('visible') : kr.classList.remove('visible');
+    recalc();
+  }
+
+  function recalc() {
+    const results = [1,2,3].map(i => {
+      const type  = document.getElementById('type-'  + i).value;
+      const karat = document.getElementById('karat-' + i).value;
+      const dwt   = parseFloat(document.getElementById('dwt-' + i).value) || 0;
+      const val   = calcCasting(type, karat, dwt);
+      const el    = document.getElementById('result-' + i);
+      if (val > 0) { el.textContent = '$' + val.toFixed(2); el.classList.add('active'); }
+      else         { el.textContent = '—'; el.classList.remove('active'); }
+      return { val, on: !!type && dwt > 0 };
+    });
+    const [p1, p2, p3] = results.map(r => r.val);
+    setTotal('single', p1,       results[0].on);
+    setTotal('two',    p1+p2,    results[0].on && results[1].on);
+    setTotal('tri',    p1+p2+p3, results[0].on && results[1].on && results[2].on);
+  }
+
+  function setTotal(id, value, on) {
+    const card  = document.getElementById('card-'  + id);
+    const label = document.getElementById('total-' + id);
+    if (on && value > 0) { card.classList.add('active'); label.textContent = '$' + value.toFixed(2); }
+    else                 { card.classList.remove('active'); label.textContent = '—'; }
+  }
+
+  fetchPrices();
+  setInterval(fetchPrices, 60 * 60 * 1000);
+</script>
+</body>
+</html>
